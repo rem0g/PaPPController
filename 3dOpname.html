@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Babylon Sign Lab</title>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <!-- BabylonJS -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Bootstrap Select -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.18/css/bootstrap-select.min.css" />
+    <!-- Animate.css for animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <style>
+        #waitASL,
+        #badASL {
+            display: none;
+        }
+
+        #woordId {
+            font-size: 5em !important;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* Additional styling for video and image selection */
+        .container.mt-4 {
+            margin-top: 1.5rem;
+        }
+
+        .container.mt-3 {
+            margin-top: 1rem;
+        }
+
+        /* Style for selected images */
+        #selectedImage,
+        #topicImage {
+            margin-top: 1rem;
+            border: 2px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        /* Media Container Styling */
+        .media-container {
+            position: relative;
+            /* width: 100%; */
+            /* height: 500px; Adjust as needed */
+            background-color: #000; /* Fallback background */
+            overflow: hidden;
+        }
+
+        .media-container video,
+        .media-container img {
+            width: 100%;
+            height: 80%;
+            object-fit: contain;
+        }
+
+        .media-container img {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Existing Buttons -->
+    <button type="button" class="btn btn-primary" onclick="leegVideos()">Alle videos van dit gebruiker op dit thema verwijderen</button>
+    <button type="button" class="btn btn-danger" onclick="sendCloseMessage()">Close UE processes</button>
+    <button type="button" class="btn btn-danger" onclick="broadcastCurrentGlos()">Broadcast Current Gloss</button>
+    <button type="button" class="btn btn-danger" onclick="exportLevelSequenceName()">Export Level Sequence Name</button>
+    <button type="button" class="btn btn-success" onclick="startCountdown(5, 3)">Test Countdown</button>
+
+    <!-- New Buttons -->
+    <button type="button" class="btn btn-info" onclick="openBroadcastModal()">Broadcast Custom Gloss</button>
+
+    <!-- Display Area for Countdown and Recording Status -->
+    <div style="position: absolute; top: 10px; right: 10px; text-align: right;">
+        <h2 id="nogTeGaan" class="mb-2"></h2>
+        <h2 id="opgenomenVandaag"></h2>
+    <!-- Countdown Duration Slider -->
+<div class="container mt-4">
+    <label for="countdownSlider">
+      Recording Duration (<span id="countdownValue">5</span> seconds):
+    </label>
+    <input type="range" id="countdownSlider" min="3" max="15" value="5"
+           oninput="document.getElementById('countdownValue').textContent = this.value;">
+<input type="checkbox" id="fastCountdown" style="margin-left: 10px;">
+<label for="fastCountdown">Set recording time  to 1000 seconds</label>
+<script>
+ 
+</script>
+  </div>
+
+  
+    </div>
+
+
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <div class="d-flex flex-column justify-content-center align-items-center">
+                    <h1 id="woordId" class="mb-3">Glos hier</h1>
+                </div>
+
+                <div class="row">
+                    <!-- Countdown Modal -->
+                    <div class="modal fade" id="countdownModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content text-center">
+                                <div class="modal-body">
+                                    <h1 id="countdownText" class="display-1 fw-bold"></h1>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Existing Video and 3D View -->
+                    <div class="col-md-12 d-flex justify-content-center align-items-center">
+                        <div class="media-container">
+                            <!-- Video Element -->
+                            <video id="signbankVideo" controls autoplay loop muted></video>
+                            
+                            <!-- Selected Image Display -->
+                            <img id="selectedImage" src="" alt="Selected Image" />
+
+                            <!-- Topic Image Display -->
+                            <img id="topicImage" src="" alt="Topic Image" />
+                        </div>
+                    </div>
+                    <!-- <div class="col-md-6">
+                        <div id="3dView" class="p-3">
+                            <canvas id="renderCanvas"></canvas>
+                        </div>
+                    </div> -->
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div id="captureStatus"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="captureResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Select Video Gloss Section -->
+    <div class="container mt-4">
+        <h2>Select a Video Gloss</h2>
+        <select class="form-select" id="videoGlossSelect" onchange="handleVideoSelection()">
+            <option value="" disabled selected>Select a video</option>
+            <!-- Options will be populated dynamically -->
+        </select>
+    </div>
+
+    <!-- Select Image Gloss Section -->
+    <div class="container mt-4">
+        <h2>Select an Image Gloss</h2>
+        <select class="form-select" id="imageGlossSelect" onchange="handleImageSelection()">
+            <option value="" disabled selected>Select an image</option>
+            <!-- Options will be populated dynamically -->
+        </select>
+        <!-- Image Display -->
+        <img id="selectedImage" src="" alt="Selected Image" style="display: none;" />
+    </div>
+
+    <!-- Select Topic Section -->
+    <div class="container mt-4">
+        <h2>Select a Topic</h2>
+        <select class="form-select" id="topicSelect" onchange="handleTopicSelection()">
+            <option value="" disabled selected>Select a topic</option>
+            <!-- Options will be populated dynamically -->
+        </select>
+        <!-- Topic Image Display -->
+        <img id="topicImage" src="" alt="Topic Image" style="display: none;" />
+    </div>
+
+    <!-- Broadcast Custom Gloss Modal -->
+    <div class="modal fade" id="broadcastCustomGlossModal" tabindex="-1" aria-labelledby="broadcastCustomGlossLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Broadcast Custom Gloss</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="customGlossInput" class="form-label">Enter Gloss:</label>
+                    <input type="text" class="form-control" id="customGlossInput" placeholder="Type your gloss here">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="broadcastCustomGloss()">Broadcast</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wait Modal -->
+    <div id="waitModal" class="modal fade bd-example-modal-lg">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Bezig met ophalen...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Att -->
+    <div class="modal fade bd-example-modal-lg" role="dialog" id="modalAtt" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="container" id="modalAttDiv">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Show Capture Modal -->
+    <!-- <div class="modal fade bd-example-modal-lg" role="dialog" id="showCapture" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="container" id="showCaptureDiv">
+                    Capturing
+                </div>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Existing Scripts -->
+    <script src="jari/BabylonSignLab/LoadingAnimation/SceneAndMeshLoader.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/animFetchAndDestroy.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/playAnims.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/ScreenRecorder.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/signCollectLoader.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/cameraController.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/noiseGenerator.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/signBuilder.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/retargetAnims.js"></script>
+    <script src="jari/BabylonSignLab/LoadingAnimation/initialize.js"></script>
+
+    <script>
+        // URL params for gloss, thema, cameraAngle, movingCamera (followed by an example comment)
+        var urlParams = new URLSearchParams(window.location.search);
+        var noBabylon = urlParams.get("noBabylon"); // noBabylon=1, if you don't want to load Babylon
+        var three = urlParams.get("three"); // three=1, iff you want to load three gloss videos
+
+        var cameraAngle = urlParams.get("cameraAngle"); // cameraAngle=270
+        var cameraAngleBeta = urlParams.get("cameraAngleBeta"); // cameraAngle=270
+        var movingCamera = urlParams.get("movingCamera"); // movingCamera=1, if you want camera to keep moving
+        var boneLock = urlParams.get("boneLock"); // boneLock=4, 0 == hip, 4 == neck, etc.
+        var play = urlParams.get("play"); // play=no, if you don't want to play the animation
+        var zin = urlParams.get("zin") // IK,BEN,GOMER
+        var limit = urlParams.get("limit") // limit=50, if you want to limit the amount of animations
+        var gltf = urlParams.get("gltf") // gltf=1, if you want to load animations with gltf extension
+        var local = urlParams.get("local") // local=1, if you want to load animations from local folder
+        var blending = urlParams.get("blending") // blending=1, if you want to blend animations
+        var debug = urlParams.get("debug") // debug=1, if you want to see debug terminal
+        var lockRot = urlParams.get("lockRot") // debug=1, if you want to see debug terminal
+        var externalAnim = urlParams.get("externalAnim") // externalAnim="https://leffe.science.uva.nl:8043/gebarenoverleg_media/fbx/appel.glb", if you want to load animations from external source
+        var noGui = urlParams.get("noGui") // noGui=1, if you don't want to see the GUI
+        var meshRotation = urlParams.get("meshRotation") // meshRotation=0-360, if you want to rotate the mesh container y-rotation
+        var onboard = urlParams.get("onboard") // onboard=0 or false, if you dont want to play the onboard animation
+        var meshURL = urlParams.get("mesh") // mesh=meshURL, for if you want a specific mesh to be loaded
+        var UELocalMode = urlParams.get("uelocalmode") // uelocalmode=1 or true, for if you want wait for ue server to send new animations
+
+        const basePath = "https://leffe.science.uva.nl:8043/gebarenoverleg_media/fbx/";
+        const basePathMesh = "jari/BabylonSignLab/LoadingAnimation/MeshesAndAnims/";
+        let engine, scene, canvas, loadedMesh, animAsset, recordingMethod, recordingFile;
+        let keepAnimating = true, animations = [], isCapturing = false, busyExport = false, countPing = 0;
+        var userId;
+        var takeNumber = 0;
+        let countdownValue = 5;
+
+    
+    document.getElementById("countdownSlider").addEventListener("input", function() {
+        if (!document.getElementById("fastCountdown").checked) {
+            countdownValue = parseInt(this.value, 10);
+            document.getElementById("countdownValue").textContent = this.value;
+        }
+    });
+    
+    document.getElementById("fastCountdown").addEventListener("change", function() {
+        if (this.checked) {
+            countdownValue = 1000;
+        } else {
+            countdownValue = parseInt(document.getElementById("countdownSlider").value, 10);
+        }
+    });
+
+        if (noBabylon !== "1") {
+            document.addEventListener("DOMContentLoaded", function () {
+                ParamsManager.setParams(0, "no", "1", "AAP", "", "0", "0", "1");
+                canvas = document.getElementById("renderCanvas");
+
+                if (!canvas) throw new Error("The canvas element is not available.");
+
+                initialize(scene, engine, canvas, basePath, basePathMesh, loadedMesh, '', '', '', "1", "0")
+                    .then(([initializedScene, initializedEngine, initializedLoadedMesh]) => {
+                        scene = initializedScene;
+                        engine = initializedEngine;
+                        loadedMesh = initializedLoadedMesh;
+                        EngineController.engine = engine;
+                        EngineController.scene = scene;
+                        EngineController.loadedMesh = loadedMesh;
+
+                        console.log(loadedMesh);
+
+                        removeAnims(scene, loadedMesh);
+                        removeAnims(scene, scene);
+                        initAnims();
+                    })
+                    .catch(error => console.error('Failed to initialize:', error));
+
+                function initAnims() {
+                    getAnims(basePath, scene, loadedMesh, ParamsManager.glos, ParamsManager.gltf)
+                        .then(anim => {
+                            animAsset = anim;
+                            animAsset.animationGroups.push(retargetAnimWithBlendshapes(loadedMesh, animAsset.animationGroups[0], "anim"));
+                            keepOnlyAnimationGroup(scene, animAsset, loadedMesh, "anim");
+                            if (ParamsManager.play != "no") playLoadedAnims(scene, loadedMesh);
+                        })
+                        .catch(error => console.error('Failed to load animations:', error));
+                }
+            });
+        } else {
+            // console.log("Babylon is disabled.");
+            // document.getElementById("renderCanvas").style.display = "none";
+
+            // // Hide Babylon container
+            // document.getElementById("3dView").style.display = "none";
+            // // Make the video container take full width
+            // var videoCol = document.querySelector("#signbankVideo").parentElement;
+            // videoCol.classList.remove("col-md-6");
+            // videoCol.classList.add("col-md-10");
+        }
+
+        $(document).ready(function () {
+            $("#waitModal").modal({});
+            ophalenData();
+        });
+
+        document.body.style.backgroundColor = "red";
+        let woordId, glosName, capturedDone = "nee", thema = urlParams.get('thema'), glos, getunrealtake;
+        let socket;
+        // let exportingInProgress = false;
+
+        function openWebSocket() {
+            socket = new WebSocket("wss://leffe.science.uva.nl:8043/unrealServer/");
+
+            socket.onopen = function (event) {
+                console.log('WebSocket is open now.');
+                ophalenData();
+
+                //send keepalive every 5 seconds
+                setInterval(function () {
+                    sendMessage(JSON.stringify({ handler: "ping", data: "ping" }));
+                }, 5000);
+            };
+
+            socket.onclose = function (event) {
+                console.log('WebSocket is closed now.');
+                document.body.style.backgroundColor = "red";
+                setTimeout(openWebSocket, 5000);
+            };
+
+            socket.onerror = function (error) {
+                console.error('WebSocket Error: ', error);
+            };
+
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+        }
+
+        openWebSocket();
+
+        function handleWebSocketMessage(data) {
+            console.log('Received message:', data);	
+            switch (data.set) {
+                case "startRecordingConfirmed":
+                    document.body.style.backgroundColor = "green";
+                    break;
+                case "stopRecordingConfirmed":
+                    // if (!isCapturing && !exportingInProgress) {
+                    if (!isCapturing) {
+                        // exportingInProgress = true;
+                        exportLevelSequenceName();
+                        document.body.style.backgroundColor = "white";
+                        // $("#waitModal").modal("show");
+                    }
+                    break;
+                case "fbxExportNameConfirmed":
+                    $("#waitModal").modal("hide");
+                    // exportingInProgress = false;
+                    const glbPath = "gebarenoverleg_media/fbx/" + glosName + ".glb";
+                    if (noBabylon !== "1") {
+                        stopLoadAndPlayAnimation(glbPath);
+                    }
+                    // playLoadedAnims(EngineController.scene, EngineController.loadedMesh);
+                    //use this one at playAnims.js to keep replaying the animation
+                    busyExport = false;
+                    break;
+                case "pong":
+                    countPing = 0;
+                    break;
+                case "requestGlos":
+                    broadcastGlos(glosName);
+                    break;
+                case "broadcastGlosConfirmed":
+                    document.body.style.backgroundColor = "white";
+                    break;
+                case "isRecordingConfirmed":
+                    console.log('isRecording:', data.isRecording);
+                    isCapturing = data.isRecording;
+                    if (isCapturing) {
+                        //show capturing modal
+                        $("#showCapture").modal("show");
+                    }
+                    else {
+                        $("#showCapture").modal("hide");
+                    }
+                    break;
+            }
+        }
+
+        function sendMessage(message) {
+            console.log("sending message: " + message);
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(message);
+            } else {
+                console.error('WebSocket is not open: ', socket.readyState);
+                document.body.style.backgroundColor = "red";
+            }
+        }
+
+        // Initialize the flag to allow keypresses
+        let keysEnabled = true;
+
+        // Add the keydown event listener
+        document.addEventListener('keydown', function (event) {
+            // If keypresses are disabled, exit early
+            if (!keysEnabled) {
+                console.log('Keypresses are temporarily disabled.');
+                return;
+            }
+
+            // Disable keypresses for 2 seconds
+            keysEnabled = false;
+            setTimeout(() => {
+                keysEnabled = true;
+                console.log('Keypresses are now enabled.');
+            }, 2000); // 2000 milliseconds = 2 seconds
+
+            let startTime = 1000;
+            const key = event.key.toLowerCase();
+
+            switch (key) {
+                case 'a':
+                    if (isCapturing) {
+                        stopCapture();
+                        isCapturing = false;
+                        busyExport = true;
+                    } else if (!busyExport) {
+                        isCapturing = true;
+                        busyExport = true;
+                        //set sleep of 2 seconds here
+                        setTimeout(() => {
+                            startCapture();
+                        }, startTime);
+                    } else if (busyExport) {
+                        isCapturing = true;
+                        busyExport = false;
+                        setTimeout(() => {
+                            startCapture();
+                        }, startTime);
+                        // console.log('Busy exporting, but skipping just for u <3');
+                        // startCountdown(5, 3);
+                        // Removed automatic stop after 5 seconds as startCapture is now called after countdown
+                    }
+                    break;
+                case 'b':
+                    if (!isCapturing)
+                    {
+                        updateData();
+                        break;
+                    }
+                case 'c':
+                updateData("skip");                    
+                break;
+            }
+
+            if (isCapturing) {
+                // Show capturing modal
+                $("#showCapture").modal("show");
+            } else {
+                // Hide capturing modal
+                $("#showCapture").modal("hide");
+            }
+        });
+
+
+        function startCapture() {
+            // broadcastCurrentGlos();
+            sendMessage(JSON.stringify({ handler: "startCapture", data: "startCapture" }));
+
+            //if checkbox is checked, dont activate the function
+            if (!document.getElementById("fastCountdown").checked) {
+                stopCaptureAfterTimeout();
+            }
+            console.log(countdownValue);
+        }
+
+        function stopCapture() {
+            sendMessage(JSON.stringify({ handler: "stopCapture", data: "stopCapture" }));
+            takeNumber++;
+            broadcastGlos(glosName);
+
+        }
+
+        function exportLevelSequenceName() {
+            sendMessage(JSON.stringify({ handler: "exportLevelSequenceName", data: "exportLevelSequenceName" }));
+        }
+
+        function broadcastGlos(glosText) {
+
+            takeDate = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+            glosTextBroadCast = glosText + "_" + takeDate + "_" + takeNumber;
+
+            // Broadcast only the gloss text without additional strings
+            sendMessage(JSON.stringify({ data: "broadcastGlos", glos: glosTextBroadCast }));
+
+            // Update the woordId element to display the broadcasted gloss
+            document.getElementById('woordId').textContent = glosText;
+        }
+
+        function broadcastCurrentGlos() {
+            if (glosName != null) {
+                broadcastGlos(glosName);  // Broadcast the current gloss
+            } else {
+                console.error("glosName not set");
+            }
+        }
+
+        function isRecording() {
+            sendMessage(JSON.stringify({ handler: "isRecording", data: "isRecording" }));
+        }
+
+        function sendCloseMessage() {
+            console.log("SENDING CLOSE MESSAGE");		
+            sendMessage(JSON.stringify({ handler: "closeProcess", data: "closeProcess" }));
+        }
+
+
+        function updateData(getunrealtake) {
+            const formData = new FormData();
+            formData.append("glos", glosName);
+            fetch('mocap_lab/save_fbx_studio.php', {
+                method: 'POST',
+                body: formData,
+            }).then(response => response.json())
+                .then(data => {
+                    console.log("SAVING GLOSS")
+                    console.log(data, glosName)
+                    if (data.success) {
+                        console.log(data);
+                        ophalenData(userId);
+                        //also get fbx_count from data and put in div id
+                        $("#opgenomenVandaag").text("Opgenomen vandaag: " + data.fbx_count);
+                    } else {
+                        console.error(data.error);
+                    }
+                }).catch(error => console.error('Error:', error));
+
+            if(three == "1")
+            {
+
+                const formData = new FormData();
+                formData.append("glos1", glos1);
+                formData.append("glos2", glos2);
+                formData.append("glos3", glos3);
+
+                fetch(`mocap_lab/saveThree.php`, {
+                    method: 'POST',
+                    body: formData,
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data)
+                    })
+            }
+        }
+
+        var glos1;
+        var glos2;
+        var glos3;
+
+        function ophalenData(userId) {
+            isRecording();
+
+            $("#signbankVideoDiv").css("width", "100%");
+
+            $("#selectUsers").modal('hide');
+
+            $("#myVideo1").hide();
+
+            userId = $("#selectUsersMenu").val(); // Ensure userId is correctly retrieved
+
+            thema = $("#selectThemaMenu").val(); // Ensure thema is correctly retrieved
+
+
+
+            if(three == "1")
+        {   
+            fetch(`mocap/fetch_all.php?param=pickThreeGlosses`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    //we will get three videos and display them in the video container
+                    //get three videos from data
+                    //json format:
+                    //[{"glos":"KLEINE-HERSENEN","video":"https:\/\/signbank.cls.ru.nl\/\/dictionary\/protected_media\/glossvideo\/NGT\/KL\/KLEINE-HERSENEN-49653.mp4","id":"6999","gloss_id":"49653"},{"glos":"WHISKEY","video":"https:\/\/signbank.cls.ru.nl\/\/dictionary\/protected_media\/glossvideo\/NGT\/WH\/WHISKEY-46380.mp4","id":"4828","gloss_id":"46380"},{"glos":"GOOIEN-C","video":"https:\/\/signbank.cls.ru.nl\/\/dictionary\/protected_media\/glossvideo\/NGT\/GO\/GOOIEN-36675.mp4","id":"4056","gloss_id":"36675"}]
+
+                    video1 = data[0].video;
+                    video2 = data[1].video;
+                    video3 = data[2].video;
+
+                    //get glos from data
+                    glos1 = data[0].glos;
+                    glos2 = data[1].glos;
+                    glos3 = data[2].glos;
+                    $("#woordId").text(glos1 + " - " + glos2 + " - " + glos3)
+
+
+                    $("#signbankVideo").remove();
+                    //add first three equally sized divs to media-container
+                    $(".media-container").html("<div class='row'><div class='col-md-4'><video id='video1' controls autoplay loop muted></video></div><div class='col-md-4'><video id='video2' controls autoplay loop muted></video></div><div class='col-md-4'><video id='video3' controls autoplay loop muted></video></div></div>");
+
+
+                    //add src to video1,2,3
+                    $("#video1").attr("src", video1);
+                    $("#video2").attr("src", video2);
+                    $("#video3").attr("src", video3);
+
+                    //play them
+                    document.getElementById('video1').play();
+                    document.getElementById('video2').play();
+                    document.getElementById('video3').play();
+
+                    
+                    // For updating the array
+                    glos = data[0].id+ "," + data[1].id + "," + data[2].id;
+                    glosName = data[0].glos + "+" + data[1].glos + "+" + data[2].glos;
+                    takeNumber = 0;
+                    broadcastGlos(glosName)
+
+                    // Reset media displays
+                    document.getElementById('selectedImage').style.display = 'none';
+                    document.getElementById('topicImage').style.display = 'none';
+                    document.getElementById('signbankVideo').style.display = 'block';
+                })
+        }
+        else
+        {
+            fetch(`mocap/fetch_all.php?param=ngtGloss`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+
+                    // Get length from data nogTeGaan with !unreal_take and unrealTake defined
+                    var nogTeGaan = data.count;
+                    var video = data.video;
+                    var alOpgenomen = data.alOpgenomen;
+
+                    $("#woordId").text(data.glos)
+                    $("#nogTeGaan").text("Nog te gaan: " + nogTeGaan)
+                    // $("#opgenomenVandaag").text("Opgenomen vandaag: " + alOpgenomen)
+
+                    $("#videoContainer").hide();
+                    $("#officeVideoDiv").hide();
+                    $("#videoRow").show();
+
+                    // Show self-recorded video in video element
+                    var videoElement = document.getElementById('signbankVideo');
+                    videoElement.src = video;
+
+                    // Check the screen height and calculate the height for the video
+                    var videoHeight = window.innerHeight - 200;
+                    videoElement.style.height = videoHeight + "px";
+
+
+                    // Load the new video source
+                    videoElement.load();
+
+                    // Play the video
+                    videoElement.play(); // Temporary
+
+                    // For updating the array
+                    glos = data.id;
+                    glosName = data.glos 
+                    // glosName = "Zin_AlgemeenFilmpje"
+                    takeNumber = 0;
+                    //we want to add date to glosName, the date is in format yymmdd
+                    //add take number to glosName
+                    
+                    broadcastGlos(glosName)
+
+                    // Reset media displays
+                    document.getElementById('selectedImage').style.display = 'none';
+                    document.getElementById('topicImage').style.display = 'none';
+                    document.getElementById('signbankVideo').style.display = 'block';
+                })
+        }
+
+          
+        }
+
+
+        function fetchSelectOptions(url, selectId) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById(selectId);
+                    data.forEach(option => {
+                        const opt = document.createElement('option');
+                        if (selectId == "selectThemaMenu") {
+                            opt.value = option;
+                            opt.textContent = option;
+                        }
+                        else {
+                            opt.value = option.userid;
+                            opt.textContent = option.user;
+                        }
+                        select.appendChild(opt);
+                    });
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        fetchSelectOptions('fetch_data.php', 'selectUsersMenu');
+        fetchSelectOptions('uniqueThema.php', 'selectThemaMenu');
+
+        function leegVideos() {
+            userId = $("#selectUsersMenu").val();
+
+            thema = $("#selectThemaMenu").val();
+
+            fetch('mocap_lab/helpScripts/emptyVideoTop.php?captureDevice=unreal&userId=' + userId + "&thema=" + thema)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+
+                    ophalenData()
+                })
+        }
+
+        // Countdown function updated earlier
+
+        // --------------------- New JavaScript Functions ---------------------
+
+        // Function to open the Broadcast Custom Gloss Modal
+        function openBroadcastModal() {
+            var broadcastModal = new bootstrap.Modal(document.getElementById('broadcastCustomGlossModal'));
+            broadcastModal.show();
+            keysEnabled = false;
+        }
+
+        // Function to broadcast the custom gloss
+        function broadcastCustomGloss() {
+            const glossInput = document.getElementById('customGlossInput').value.trim();
+            if (glossInput === "") {
+                // alert("Please enter a gloss.");
+                return;
+            }
+            
+            glosName = glossInput; // added by Rob for Jari 7-2-2025
+
+            // Broadcast the gloss
+            broadcastGlos(glossInput);
+            
+            // Optionally, update the UI or provide feedback
+            // alert("Gloss '" + glossInput + "' has been broadcasted.");
+            //pause and remove the video
+            document.getElementById('signbankVideo').pause();
+            //play video from /web/12742578_2560_1440_30fps.mp4
+            document.getElementById('signbankVideo').src = "12742578_2560_1440_30fps.mp4";
+            document.getElementById('signbankVideo').load();
+
+            //give signbankVideo fixed height based on the video height
+            // document.getElementById('signbankVideo').style.height = "500px;";
+
+
+            // Clear the input
+            document.getElementById('customGlossInput').value = "";
+            
+            // Hide the modal
+            var broadcastModal = bootstrap.Modal.getInstance(document.getElementById('broadcastCustomGlossModal'));
+            broadcastModal.hide();
+            keysEnabled = true;
+        }
+
+        // Function to fetch and populate the video select menu
+        function populateVideoGlossSelect() {
+            fetch('mocap_lab/generate_video_files.php') // Update to your PHP script path
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+                    const select = document.getElementById('videoGlossSelect');
+                    data.forEach(file => {
+                        const option = document.createElement('option');
+                        // Remove the file extension for the gloss value
+                        const glossText = file.replace(/\.[^/.]+$/, "");
+                        const glossValue = file;
+                        option.value = glossValue;
+                        option.textContent = glossText;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching video files:', error));
+        }
+
+        // Function to handle video selection
+        function handleVideoSelection() {
+            const select = document.getElementById('videoGlossSelect');
+            const selectedValue = select.value;
+
+            if (!selectedValue) return;
+
+            // Display the selected video in the existing video player
+            const videoElement = document.getElementById('signbankVideo');
+            videoElement.src = `mocap_lab/mocap_videos/${selectedValue}`; // Update 'mocap_videos/' to your actual video folder path
+            videoElement.style.display = 'block';
+            videoElement.play();
+            
+            // Hide image elements
+            document.getElementById('selectedImage').style.display = 'none';
+            document.getElementById('topicImage').style.display = 'none';
+            console.log("handling video selection")
+            // Broadcast the gloss without the file extension
+            const glossText = selectedValue.replace(/\.[^/.]+$/, "");
+            glosName = glossText;
+            broadcastGlos(glossText);
+        }
+
+        // Function to fetch and populate the image select menu
+        function populateImageGlossSelect() {
+            fetch('mocap_lab/fetch_images.php') // Update to your PHP script path for images
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+                    const select = document.getElementById('imageGlossSelect');
+                    data.forEach(file => {
+                        const option = document.createElement('option');
+                        // Remove the file extension for the gloss value
+                        const glossText = file.replace(/\.[^/.]+$/, "");
+                        const glossValue = file;
+                        option.value = glossValue;
+                        option.textContent = glossText;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching image files:', error));
+        }
+
+        // Function to handle image selection
+        function handleImageSelection() {
+            const select = document.getElementById('imageGlossSelect');
+            const selectedValue = select.value;
+
+            if (!selectedValue) {
+                // If no image is selected, ensure video is displayed
+                document.getElementById('selectedImage').style.display = 'none';
+                document.getElementById('signbankVideo').style.display = 'block';
+                return;
+            }
+
+            // Display the selected image
+            const imageElement = document.getElementById('selectedImage');
+            imageElement.src = `mocap_lab/meta_images/${selectedValue}`; // Update 'images/' to your actual image folder path
+            imageElement.style.display = 'block';
+
+            //unload the video
+            document.getElementById('signbankVideo').src = "";
+
+            //hide topicImage
+            document.getElementById('topicImage').style.display = 'none';
+
+
+            // Broadcast the gloss without the file extension
+            const glossText = selectedValue.replace(/\.[^/.]+$/, "");
+            glosName = glossText;
+            broadcastGlos(glossText);
+        }
+
+        // Function to fetch and populate the topic select menu
+        function populateTopicSelect() {
+            fetch('mocap_lab/fetch_topics.php') // Update to your PHP script path for topics
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error(data.error);
+                        return;
+                    }
+                    const select = document.getElementById('topicSelect');
+                    data.forEach(topic => {
+                        const option = document.createElement('option');
+                        option.value = topic.name; // Assuming 'name' is the topic value
+                        option.textContent = topic.name;
+                        option.dataset.img = topic.img; // Store image reference
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error fetching topics:', error));
+        }
+
+        // Function to handle topic selection
+        function handleTopicSelection() {
+            const select = document.getElementById('topicSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            var selectedValue = selectedOption.value;
+            const imageRef = 'mocap_lab/' + selectedOption.dataset.img;
+
+            if (!selectedValue) {
+                // If no topic is selected, ensure video is displayed
+                document.getElementById('topicImage').style.display = 'none';
+                document.getElementById('signbankVideo').style.display = 'block';
+                return;
+            }
+
+            //adjust selectedvalue to spaceless and remove any specialcharacters
+            selectedValue = selectedValue.replace(/[^a-zA-Z0-9]/g, '');
+
+            // Broadcast the selected topic
+            broadcastGlos(selectedValue);
+
+            // Display the associated image if available
+            if (selectedOption.dataset.img) {
+                const topicImageElement = document.getElementById('topicImage');
+                topicImageElement.src = imageRef; // Ensure imageRef is a valid URL
+                topicImageElement.style.display = 'block';
+
+                document.getElementById('topicImage').style.height = document.getElementById('signbankVideo').style.height;
+
+                // Hide the video
+                document.getElementById('signbankVideo').src = "";
+            } else {
+                // If no image reference is provided, keep the video displayed
+                document.getElementById('topicImage').style.display = 'none';
+                document.getElementById('signbankVideo').style.display = 'none';
+            }
+        }
+
+        // Ensure the select menus are populated on page load
+        $(document).ready(function () {
+            populateVideoGlossSelect();
+            populateImageGlossSelect();
+            populateTopicSelect();
+        });
+
+        //add function here to execute stopCapture after 5 seconds of pressing startCapture function
+        function stopCaptureAfterTimeout() {
+            setTimeout(() => {
+                stopCapture();
+                isCapturing = false;
+                busyExport = true;
+                console.log("stopping capture after timeout")
+            }, countdownValue * 1000);
+        }
+
+    </script>
+</body>
+
+</html>
