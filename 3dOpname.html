@@ -95,6 +95,7 @@
     <!-- New Buttons -->
     <button type="button" class="btn btn-info" onclick="openBroadcastModal()">Broadcast Custom Gloss</button>
     <button type="button" class="btn btn-danger" onclick="sendCustomCommand('set', 'torchToggle')">Toggle Torch</button>
+    <button type="button" class="btn btn-info" onclick="openCustomCommandModal()">Send Custom Command</button>
 
     <!-- Display Area for Countdown and Recording Status -->
     <div style="position: absolute; top: 10px; right: 10px; text-align: right;">
@@ -214,6 +215,28 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" onclick="broadcastCustomGloss()">Broadcast</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Broadcast Custom Command Modal -->
+    <div class="modal fade" id="customCommandModal" tabindex="-1" aria-labelledby="customCommandModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customCommandModalLabel">Custom Command</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="commandTypeInput" class="form-label">Enter Type:</label>
+                    <input type="text" class="form-control" id="commandTypeInput" placeholder="Type here">
+                    <label for="commandMsgInput" class="form-label mt-2">Enter Message:</label>
+                    <input type="text" class="form-control" id="commandMsgInput" placeholder="Message here">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="sendCustomCommandFromModal()">Send Command</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </div>
@@ -1004,6 +1027,21 @@
         function sendCustomCommand(type, msg) {
             sendMessage(JSON.stringify({ [type]: msg }));
         }
+        function openCustomCommandModal() {
+            var customCommandModal = new bootstrap.Modal(document.getElementById('customCommandModal'));
+            customCommandModal.show();
+        }
+        function sendCustomCommandFromModal() {
+            const type = document.getElementById('commandTypeInput').value;
+            const msg = document.getElementById('commandMsgInput').value;
+            if (type && msg) {
+                sendCustomCommand(type, msg);
+                document.getElementById('customCommandModal').modal('hide');
+            } else {
+                alert("Please enter both type and message");
+            }
+        }
+
     </script>
 </body>
 
